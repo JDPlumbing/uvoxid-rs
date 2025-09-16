@@ -10,7 +10,12 @@ readme = "README.md"
 categories = ["science", "simulation", "encoding"]
 keywords = ["uvoxid", "voxel", "3d", "encoding", "spatial"]
 
+[[bench]]
+name = "uvoxid_bench"
+harness = false
+
 [dependencies]
 num-bigint = "0.4"
 num-traits = "0.2"
+criterion = "0.5"
 
