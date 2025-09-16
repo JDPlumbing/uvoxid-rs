@@ -2,7 +2,7 @@
 //! Orientation utilities for UVoxID.
 
 use num_bigint::BigUint;
-use crate::{encode_uvoxid, decode_uvoxid};
+use crate::decode_uvoxid;
 
 /// Compute differences between two UVoxID positions.
 ///
@@ -31,6 +31,7 @@ pub fn spherical_delta(uv1: &BigUint, uv2: &BigUint) -> (i64, f64, f64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{encode_uvoxid};  // ✅ bring encode_uvoxid into scope
 
     #[test]
     fn test_spherical_delta() {
@@ -40,10 +41,11 @@ mod tests {
         let miami = encode_uvoxid(earth_radius_um, (25.76 * 1e6) as i64, (-80.19 * 1e6) as i64);
         let nyc   = encode_uvoxid(earth_radius_um, (40.71 * 1e6) as i64, (-74.01 * 1e6) as i64);
 
+        // ✅ pass by reference
         let (dr_um, dlat_deg, dlon_deg) = spherical_delta(&miami, &nyc);
 
         assert_eq!(dr_um, 0);
         assert!((dlat_deg - 14.95).abs() < 0.1);
         assert!((dlon_deg - 6.18).abs() < 0.1);
-    }
+    }   
 }

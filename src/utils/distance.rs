@@ -1,7 +1,6 @@
 // src/utils/distance.rs
 //! Distance utilities for UVoxID.
 
-use std::f64::consts::PI;
 
 use crate::decode_uvoxid;
 use num_bigint::BigUint;

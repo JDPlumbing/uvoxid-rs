@@ -4,7 +4,6 @@
 //! These functions work with decoded UVoxIDs (r, lat, lon)
 //! to compute surface areas on spheres and planar patches.
 
-use std::f64::consts::PI;
 
 use crate::decode_uvoxid; // assumes `decode_uvoxid` lives in crate root
 
