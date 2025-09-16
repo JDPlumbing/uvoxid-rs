@@ -1,0 +1,16 @@
+[package]
+name = "uvoxid"
+version = "0.1.0"
+edition = "2021"
+authors = ["JD Plumbing <jdplumbingsoflo@gmail.com>"]
+description = "UVoxID: 192-bit spatial addressing scheme for encoding/decoding micrometer + lat/lon coordinates."
+license = "MIT"
+repository = "https://github.com/JDPlumbing/uvoxid-rs"
+readme = "README.md"
+categories = ["science", "simulation", "encoding"]
+keywords = ["uvoxid", "voxel", "3d", "encoding", "spatial"]
+
+[dependencies]
+num-bigint = "0.4"
+num-traits = "0.2"
+
