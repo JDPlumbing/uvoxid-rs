@@ -1,27 +1,19 @@
 use num_bigint::BigUint;
 use num_traits::ToPrimitive;
 
+pub mod utils; // 👈 add this
+
 /// Encode spherical coordinates into a 192-bit UVoxID integer.
-///
-/// Fields (fixed units):
-/// - `r_um`: radius in micrometers (µm)
-/// - `lat_microdeg`: latitude in millionths of a degree (-90e6 to +90e6)
-/// - `lon_microdeg`: longitude in millionths of a degree (-180e6 to +180e6)
-///
-/// Returns: 192-bit integer `BigUint`.
 pub fn encode_uvoxid(r_um: u64, lat_microdeg: i64, lon_microdeg: i64) -> BigUint {
     let lat_enc = (lat_microdeg + 90_000_000) as u64;
     let lon_enc = (lon_microdeg + 180_000_000) as u64;
 
-    // Pack fields: [ r (64b) | lat (64b) | lon (64b) ]
     (BigUint::from(r_um) << 128u32)
         | (BigUint::from(lat_enc) << 64u32)
         | BigUint::from(lon_enc)
 }
 
 /// Decode a 192-bit UVoxID back into spherical coordinates.
-///
-/// Returns tuple: (r_um, lat_microdeg, lon_microdeg).
 pub fn decode_uvoxid(uvoxid: &BigUint) -> (u64, i64, i64) {
     let mask64 = BigUint::from(u64::MAX);
 
