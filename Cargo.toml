@@ -1,6 +1,6 @@
 [package]
 name = "uvoxid"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["JD Plumbing <jdplumbingsoflo@gmail.com>"]
 description = "UVoxID: 192-bit spatial addressing scheme for encoding/decoding micrometer + lat/lon coordinates."
