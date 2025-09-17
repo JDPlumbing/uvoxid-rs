@@ -64,17 +64,18 @@ Decoded: r = 6371000000000 µm, lat = 0 µ°, lon = 0 µ°
 
 ## 📖 API
 
-### `encode_uvoxid(r_um, lat_microdeg, lon_microdeg) -> u128`
+### `encode_uvoxid(r_um: u64, lat_microdeg: i64, lon_microdeg: i64) -> UvoxId`
 
-- `r_um`: radius in micrometers (µm).
-- `lat_microdeg`: latitude in millionths of a degree (−90e6 to +90e6).
-- `lon_microdeg`: longitude in millionths of a degree (−180e6 to +180e6).
-- Returns: 192-bit integer UVoxID.
+- `r_um`: radius in micrometers (µm), stored as an unsigned 64-bit value.  
+- `lat_microdeg`: latitude in millionths of a degree (−90e6 to +90e6). Encoded internally as a `u64` offset by +90,000,000.  
+- `lon_microdeg`: longitude in millionths of a degree (−180e6 to +180e6). Encoded internally as a `u64` offset by +180,000,000.  
+- Returns: a `UvoxId` (192-bit packed struct with `(r, lat, lon)`).  
 
-### `decode_uvoxid(id) -> (u64, i64, i64)`
+### `decode_uvoxid(id: UvoxId) -> (u64, i64, i64)`
 
-- Input: 192-bit integer.
-- Output: `(r_um, lat_microdeg, lon_microdeg)`.
+- Input: a `UvoxId` struct (192-bit packed).  
+- Output: `(r_um, lat_microdeg, lon_microdeg)` with offsets reversed so you get back the signed coordinates you passed in.  
+
 
 ---
 
