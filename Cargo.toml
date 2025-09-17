@@ -17,5 +17,7 @@ harness = false
 [dependencies]
 num-bigint = "0.4"
 num-traits = "0.2"
+
+[dev-dependencies]
 criterion = "0.5"
 
