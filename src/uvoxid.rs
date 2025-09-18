@@ -1,51 +1,64 @@
 // src/uvoxid.rs
 
-/// A 192-bit UVoxID packed as (r_um, lat_microdeg, lon_microdeg).
+/// A UVoxID as 3x64-bit fields, with helpers to pack/unpack into 192-bit form.
 /// - r_um: radius in micrometers
 /// - lat_microdeg: latitude in millionths of a degree (-90e6..+90e6)
 /// - lon_microdeg: longitude in millionths of a degree (-180e6..+180e6)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct UvoxId(u128, u64); 
-// Store as 128+64 = 192 bits
+pub struct UvoxId {
+    pub r_um: u64,
+    pub lat_microdeg: i64,
+    pub lon_microdeg: i64,
+}
 
 impl UvoxId {
-    /// Encode spherical coordinates into UVoxID.
-    pub fn encode(r_um: u64, lat_microdeg: i64, lon_microdeg: i64) -> Self {
-        let lat_enc = (lat_microdeg + 90_000_000) as u64;
-        let lon_enc = (lon_microdeg + 180_000_000) as u64;
-
-        // Pack: [ r (64b) | lat (64b) | lon (64b) ]
-        let high: u128 = (r_um as u128) << 64 | (lat_enc as u128);
-        let low: u64 = lon_enc;
-
-        Self(high, low)
+    /// Construct directly from tuple.
+    pub fn new(r_um: u64, lat_microdeg: i64, lon_microdeg: i64) -> Self {
+        Self { r_um, lat_microdeg, lon_microdeg }
     }
 
-    /// Decode UVoxID back into spherical coordinates.
-    pub fn decode(&self) -> (u64, i64, i64) {
-        let r_um = (self.0 >> 64) as u64;
-        let lat_enc = (self.0 & ((1u128 << 64) - 1)) as u64;
-        let lon_enc = self.1;
+    /// Convert to packed (192-bit) representation.
+    pub fn to_packed(&self) -> (u128, u64) {
+        let lat_enc = (self.lat_microdeg + 90_000_000) as u64;
+        let lon_enc = (self.lon_microdeg + 180_000_000) as u64;
+
+        let high: u128 = (self.r_um as u128) << 64 | (lat_enc as u128);
+        let low: u64 = lon_enc;
+
+        (high, low)
+    }
+
+    /// Reconstruct from packed (192-bit) representation.
+    pub fn from_packed(high: u128, low: u64) -> Self {
+        let r_um = (high >> 64) as u64;
+        let lat_enc = (high & ((1u128 << 64) - 1)) as u64;
+        let lon_enc = low;
 
         let lat_microdeg = lat_enc as i64 - 90_000_000;
         let lon_microdeg = lon_enc as i64 - 180_000_000;
 
-        (r_um, lat_microdeg, lon_microdeg)
+        Self { r_um, lat_microdeg, lon_microdeg }
     }
 
-    /// Return as hex string for storage/logging.
+    /// Convert to hex string.
     pub fn to_hex(&self) -> String {
-        format!("{:032x}{:016x}", self.0, self.1)
+        let (high, low) = self.to_packed();
+        format!("{:032x}{:016x}", high, low)
     }
 
-    /// Construct from hex string.
+    /// Parse from hex string.
     pub fn from_hex(s: &str) -> Option<Self> {
         if s.len() != 48 {
             return None;
         }
         let high = u128::from_str_radix(&s[0..32], 16).ok()?;
         let low = u64::from_str_radix(&s[32..48], 16).ok()?;
-        Some(Self(high, low))
+        Some(Self::from_packed(high, low))
+    }
+
+    /// Return as tuple for easy math.
+    pub fn as_tuple(&self) -> (u64, i64, i64) {
+        (self.r_um, self.lat_microdeg, self.lon_microdeg)
     }
 }
 
@@ -54,10 +67,21 @@ mod tests {
     use super::*;
 
     #[test]
-    fn round_trip() {
-        let original = (1_000_000u64, 123_456i64, -654_321i64);
-        let uvox = UvoxId::encode(original.0, original.1, original.2);
-        let decoded = uvox.decode();
-        assert_eq!(original, decoded);
+    fn round_trip_math_and_pack() {
+        let original = UvoxId::new(1_000_000u64, 123_456i64, -654_321i64);
+
+        // Tuple view
+        let tup = original.as_tuple();
+        assert_eq!(tup, (1_000_000, 123_456, -654_321));
+
+        // Packed round trip
+        let (high, low) = original.to_packed();
+        let unpacked = UvoxId::from_packed(high, low);
+        assert_eq!(original, unpacked);
+
+        // Hex round trip
+        let hex = original.to_hex();
+        let from_hex = UvoxId::from_hex(&hex).unwrap();
+        assert_eq!(original, from_hex);
     }
 }
