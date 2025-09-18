@@ -1,6 +1,6 @@
 [package]
 name = "uvoxid"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 authors = ["JD Plumbing <jdplumbingsoflo@gmail.com>"]
 description = "UVoxID: 192-bit spatial addressing scheme for encoding/decoding micrometer + lat/lon coordinates."
@@ -14,10 +14,15 @@ keywords = ["uvoxid", "voxel", "3d", "encoding", "spatial"]
 name = "uvoxid_bench"
 harness = false
 
-[dependencies]
-num-bigint = "0.4"
-num-traits = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+ciborium = "0.2"
 
 [dev-dependencies]
 criterion = "0.5"
+
+[dependencies]
+ciborium = "0.2.2"
+serde = "1.0.225"
+serde_json = "1.0.145"
 

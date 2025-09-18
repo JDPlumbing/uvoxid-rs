@@ -1,34 +1,56 @@
-use uvoxid::{encode_uvoxid, decode_uvoxid};
-use num_bigint::BigUint;
+use uvoxid::{UvoxId, Delta};
 
 #[test]
-fn roundtrip_encode_decode() {
-    let r: u64 = 42;
-    let lat: i64 = 1_000_000;   // ~1 degree
-    let lon: i64 = -2_000_000;  // ~-2 degrees
-
-    let id: BigUint = encode_uvoxid(r, lat, lon);
-
-    // ✅ Borrow id instead of moving it
-    let (r2, lat2, lon2) = decode_uvoxid(&id);
-
-    assert_eq!(r, r2);
-    assert_eq!(lat, lat2);
-    assert_eq!(lon, lon2);
+fn construct_and_unpack() {
+    let pos = UvoxId::new(0, 1_000_000, 12345, -67890);
+    let (frame, r, lat, lon) = pos.as_tuple();
+    assert_eq!(frame, 0);
+    assert_eq!(r, 1_000_000);
+    assert_eq!(lat, 12345);
+    assert_eq!(lon, -67890);
 }
 
 #[test]
-fn different_values() {
-    let r: u64 = 123456789;
-    let lat: i64 = 12_345_678;
-    let lon: i64 = -98_765_432;
+fn apply_delta_increases_radius() {
+    let mut pos = UvoxId::new(0, 1_000_000, 0, 0);
+    let delta = Delta { dr_um: 100, dlat: 50, dlon: -50 };
+    pos.apply_delta(delta);
+    let (_, r, lat, lon) = pos.as_tuple();
+    assert_eq!(r, 1_000_100);
+    assert_eq!(lat, 50);
+    assert_eq!(lon, -50);
+}
 
-    let id: BigUint = encode_uvoxid(r, lat, lon);
+#[test]
+fn wrapping_lat_lon() {
+    let mut pos = UvoxId::new(0, 0, i64::MAX, i64::MAX);
+    let delta = Delta { dr_um: 0, dlat: 1, dlon: 1 };
+    // should not panic
+    pos.apply_delta(delta);
+}
 
-    // ✅ Borrow id here too
-    let (decoded_r, decoded_lat, decoded_lon) = decode_uvoxid(&id);
+#[test]
+fn cross_north_pole_wraps_correctly() {
+    let mut pos = UvoxId::new(0, 0, 89_999_990, 0); // near north pole
+    let delta = Delta { dr_um: 0, dlat: 20, dlon: 0 }; // push past pole
+    pos.apply_delta(delta);
 
-    assert_eq!(r, decoded_r);
-    assert_eq!(lat, decoded_lat);
-    assert_eq!(lon, decoded_lon);
+    let (_, _, lat, lon) = pos.as_tuple();
+    // Expect latitude reflected back below pole
+    assert!(lat <= 90_000_000);
+    // Longitude should have shifted by ~180° if we crossed
+    assert_eq!(lon % 180_000_000, 0);
+}
+
+#[test]
+fn cross_south_pole_wraps_correctly() {
+    let mut pos = UvoxId::new(0, 0, -89_999_990, 0); // near south pole
+    let delta = Delta { dr_um: 0, dlat: -20, dlon: 0 }; // push past pole
+    pos.apply_delta(delta);
+
+    let (_, _, lat, lon) = pos.as_tuple();
+    // Expect latitude reflected back above pole
+    assert!(lat >= -90_000_000);
+    // Longitude should have shifted by ~180° if we crossed
+    assert_eq!(lon % 180_000_000, 0);
 }
