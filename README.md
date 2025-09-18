@@ -1,97 +1,66 @@
-# UVoxID (Rust)
+# uvoxid
 
 [![Crates.io](https://img.shields.io/crates/v/uvoxid.svg)](https://crates.io/crates/uvoxid)
 [![Documentation](https://docs.rs/uvoxid/badge.svg)](https://docs.rs/uvoxid)
 [![License](https://img.shields.io/crates/l/uvoxid.svg)](./LICENSE)
+A crate for representing positions in space (and time) with **pure integers**, designed for simulations, physics, and spatial indexing.
 
-**Universal Voxel Identifier (UVoxID)** — a deterministic, 192-bit encoding scheme for spherical spatial coordinates at micrometer precision.  
+## Overview
 
-Think of it as a globally consistent **voxel address system**: every point in space has a permanent ID, valid from Earth’s core to interstellar distances.
+`UvoxId` encodes a position as **four 64-bit fields**:
 
----
+- `frame_id: u64` → Reference frame (0 = Earth, 1 = Moon, 2 = Sun, …)
+- `r_um: u64` → Radial distance from the frame center, in micrometers
+- `lat_code: i64` → Latitude code (full 64-bit signed integer range)
+- `lon_code: i64` → Longitude code (full 64-bit signed integer range)
 
-## ✨ Features
+This gives:
+- **Integer math only** (no floats in the core representation).
+- **Ridiculous precision** — sub-atomic resolution at Earth’s surface, ~6 mm resolution even at 2 light-years.
+- **Stable hex serialization** (256-bit fixed-width string).
+- Optional `serde` support for JSON/CBOR serialization.
 
-- **192-bit encoding**: `(radius, latitude, longitude)` → one integer.
-- **Deterministic & exact**: no floating-point drift.
-- **Compact**: 24 bytes per position, globally unique.
-- **Rust-native**: safe, simple API for encode/decode.
-- **Tested**: round-trip encoding/decoding verified.
-
----
-
-## 📦 Installation
-
-```bash
-cargo add uvoxid
-```
-
-Or add manually to `Cargo.toml`:
-
-```toml
-[dependencies]
-uvoxid = "0.1"
-```
-
----
-
-## 🔍 Example
+## Examples
 
 ```rust
-use uvoxid::{encode_uvoxid, decode_uvoxid};
+use uvoxid::{UvoxId, Delta};
 
-fn main() {
-    // Earth mean radius in µm
-    let earth_r_um: u64 = 6_371_000_000_000;
+// Construct a position (frame 0 = Earth)
+let mut pos = UvoxId::earth(6_371_000_000_000, 0, 0);
 
-    // At equator, prime meridian
-    let id = encode_uvoxid(earth_r_um, 0, 0);
+// Apply a delta
+let delta = Delta { dr_um: 100, dlat: 50, dlon: -50 };
+pos.apply_delta(delta);
 
-    println!("UVoxID: {:#x}", id);
+println!("{}", pos); 
+// → frame=0, r=6371000000100 µm, lat=50, lon=-50
 
-    let (r, lat, lon) = decode_uvoxid(id);
-    println!("Decoded: r = {} µm, lat = {} µ° , lon = {} µ°", r, lat, lon);
-}
+// Serialize to hex
+let hex = pos.to_hex();
+let back = UvoxId::from_hex(&hex).unwrap();
+assert_eq!(pos, back);
+
+// Serialize to JSON (with serde enabled)
+let json = serde_json::to_string(&pos).unwrap();
+let decoded: UvoxId = serde_json::from_str(&json).unwrap();
+assert_eq!(pos, decoded);
 ```
 
-Output:
-```
-UVoxID: 0x59fb8c83f100000000000055d4a8000000000aba950
-Decoded: r = 6371000000000 µm, lat = 0 µ°, lon = 0 µ°
-```
+## Why?
 
----
+- **Consistent, integer-only units** for distance, area, volume, velocity, and time.
+- **Reference-frame aware**: anchor at Earth, Moon, Sun, or any body by `frame_id`.
+- **Simulation-ready**: can represent velocity as “uvox per tick,” where one tick = 1 ns, with the speed of light defined as a max velocity in those units.
 
-## 📖 API
+## Benchmarks
 
-### `encode_uvoxid(r_um: u64, lat_microdeg: i64, lon_microdeg: i64) -> UvoxId`
+With Criterion:
 
-- `r_um`: radius in micrometers (µm), stored as an unsigned 64-bit value.  
-- `lat_microdeg`: latitude in millionths of a degree (−90e6 to +90e6). Encoded internally as a `u64` offset by +90,000,000.  
-- `lon_microdeg`: longitude in millionths of a degree (−180e6 to +180e6). Encoded internally as a `u64` offset by +180,000,000.  
-- Returns: a `UvoxId` (192-bit packed struct with `(r, lat, lon)`).  
+- Construct `UvoxId`: ~2 ns  
+- Apply delta: ~8 ns  
+- Serialize/deserialize JSON: ~50–100 ns  
+- Haversine distance: ~37 ns  
 
-### `decode_uvoxid(id: UvoxId) -> (u64, i64, i64)`
-
-- Input: a `UvoxId` struct (192-bit packed).  
-- Output: `(r_um, lat_microdeg, lon_microdeg)` with offsets reversed so you get back the signed coordinates you passed in.  
-
-
----
-
-## 🛠 Development
-
-Run tests:
-
-```bash
-cargo test
-```
-
-Format code:
-
-```bash
-cargo fmt
-```
 
 ---
 
